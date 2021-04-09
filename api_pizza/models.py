@@ -7,7 +7,7 @@ class Size(models.Model):
     cost = models.SmallIntegerField('Цена', default=0)
 
     def __str__(self):
-        return self.value
+        return str(self.value)
 
 
 class Dough(models.Model):
@@ -36,7 +36,7 @@ class Pizza(models.Model):
     image = models.URLField('Изображение', max_length=70)
     dough = models.ForeignKey(Dough, on_delete=models.CASCADE)
     size = models.ForeignKey(Size, on_delete=models.CASCADE)
-    ingredients = models.ManyToManyField(Ingredient, 'Ингредиенты')
+    ingredients = models.ManyToManyField(Ingredient)
     cost = models.PositiveIntegerField('Цена', default=0)
 
     def __str__(self):
@@ -74,8 +74,9 @@ class Cart(models.Model):
     image = models.URLField('Изображение', max_length=70)
     dough = models.ForeignKey(Dough, on_delete=models.CASCADE)
     size = models.ForeignKey(Size, on_delete=models.CASCADE)
-    ingredients = models.ManyToManyField(Ingredient, 'Ингредиенты')
+    ingredients = models.ManyToManyField(Ingredient)
     cost = models.PositiveIntegerField('Цена', default=0)
+    sold = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
