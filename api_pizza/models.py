@@ -33,7 +33,7 @@ class Pizza(models.Model):
 
     name = models.CharField('Название', max_length=50)
     description = models.TextField('Описание', max_length=250)
-    image = models.URLField('Изображение', max_length=70)
+    image = models.URLField('Изображение', max_length=150)
     dough = models.ForeignKey(Dough, on_delete=models.CASCADE)
     size = models.ForeignKey(Size, on_delete=models.CASCADE)
     ingredients = models.ManyToManyField(Ingredient)
@@ -71,10 +71,10 @@ class Cart(models.Model):
     """ Корзина """
 
     name = models.CharField('Название', max_length=50)
-    image = models.URLField('Изображение', max_length=70)
+    image = models.URLField('Изображение', max_length=150)
     dough = models.ForeignKey(Dough, on_delete=models.CASCADE)
     size = models.ForeignKey(Size, on_delete=models.CASCADE)
-    ingredients = models.ManyToManyField(Ingredient)
+    ingredients = models.ManyToManyField(Ingredient, null=True)
     cost = models.PositiveIntegerField('Цена', default=0)
     sold = models.BooleanField(default=False)
 

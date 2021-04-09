@@ -41,11 +41,10 @@ class PizzasSerializer(serializers.ModelSerializer):
 class CartSerializer(serializers.ModelSerializer):
     """ Вывод списка товаров из корзины """
 
-    dough = DoughsListSerializer()
     size = SizesListSerializer()
+    dough = DoughsListSerializer()
     ingredients = IngredientsListSerializer(many=True)
 
     class Meta:
         model = Cart
         fields = '__all__'
-

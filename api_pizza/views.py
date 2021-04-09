@@ -60,3 +60,22 @@ class CartView(APIView):
         items = Cart.objects.all()
         serializer = CartSerializer(items, many=True)
         return Response(serializer.data)
+
+    def post(self, request):
+        data = request.data
+
+        new_item = Cart.objects.create(name=data['name'],
+                                       image=data['image'],
+                                       dough=Dough.objects.get(id=data['dough']),
+                                       size=Size.objects.get(id=data['size']),
+                                       cost=data['cost'])
+        new_item.save()
+
+        for ingredient in data['ingredients']:
+            ingredient_obj = Ingredient.objects.get(value=ingredient['value'],
+                                                    cost=ingredient['cost'])
+            new_item.ingredients.add(ingredient_obj)
+
+        serializer = CartSerializer(new_item)
+
+        return Response(serializer.data)
