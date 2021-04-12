@@ -23,6 +23,7 @@ class Ingredient(models.Model):
     """ Ингредиенты """
     value = models.CharField('Ингредиент', max_length=50)
     cost = models.SmallIntegerField('Цена', default=0)
+    count = models.SmallIntegerField('Количество порций', default=1)
 
     def __str__(self):
         return self.value
@@ -38,6 +39,7 @@ class Pizza(models.Model):
     size = models.ForeignKey(Size, on_delete=models.CASCADE)
     ingredients = models.ManyToManyField(Ingredient)
     cost = models.PositiveIntegerField('Цена', default=0)
+    forSale = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -67,6 +69,19 @@ class Dessert(models.Model):
         return self.name
 
 
+class IntermediateCart(models.Model):
+    """ Промежуточная корзина """
+
+    name = models.CharField('Название', max_length=50)
+    image = models.URLField('Изображение', max_length=150)
+    dough = models.ForeignKey(Dough, on_delete=models.CASCADE)
+    size = models.ForeignKey(Size, on_delete=models.CASCADE)
+    ingredients = models.ManyToManyField(Ingredient, related_name='intermediate_ingredients')
+    additionalIngredients = models.ManyToManyField(Ingredient, related_name='intermediate_addIngredients')
+    cost = models.PositiveIntegerField('Цена', default=0)
+    sold = models.BooleanField(default=False)
+
+
 class Cart(models.Model):
     """ Корзина """
 
@@ -74,7 +89,8 @@ class Cart(models.Model):
     image = models.URLField('Изображение', max_length=150)
     dough = models.ForeignKey(Dough, on_delete=models.CASCADE)
     size = models.ForeignKey(Size, on_delete=models.CASCADE)
-    ingredients = models.ManyToManyField(Ingredient, null=True)
+    ingredients = models.ManyToManyField(Ingredient, related_name='ingredients')
+    additionalIngredients = models.ManyToManyField(Ingredient, related_name='addIngredients')
     cost = models.PositiveIntegerField('Цена', default=0)
     sold = models.BooleanField(default=False)
 

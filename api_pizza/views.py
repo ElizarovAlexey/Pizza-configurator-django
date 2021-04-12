@@ -1,6 +1,7 @@
 from rest_framework.response import Response
+from rest_framework import viewsets
 from rest_framework.views import APIView
-from .models import (Size, Dough, Ingredient, Pizza, Drink, Dessert, Cart)
+from .models import (Size, Dough, Ingredient, Pizza, Drink, Dessert, Cart, IntermediateCart)
 from .serializers import (PizzasSerializer,
                           IngredientsListSerializer,
                           SizesListSerializer,
@@ -12,16 +13,43 @@ class PizzaListView(APIView):
     """ Вывод списка пицц """
 
     def get(self, request):
-        pizzas = Pizza.objects.all()
+        pizzas = Pizza.objects.filter(forSale=True)
         serializer = PizzasSerializer(pizzas, many=True)
         return Response(serializer.data)
+
+    def post(self, request):
+        """ Добавление пиццы в промежуточную корзину """
+
+        pizza_id = request.data
+        try:
+            pizza_clone = Pizza.objects.get(id=pizza_id['id'])
+        except Pizza.DoesNotExist:
+            return Response('Pizza does not exist', status=404)
+        item = IntermediateCart.objects.create(name=pizza_clone.name,
+                                               image=pizza_clone.image,
+                                               dough=pizza_clone.dough,
+                                               size=pizza_clone.size,
+                                               cost=pizza_clone.cost)
+        item.save()
+
+        for ingredient in pizza_clone.ingredients.all():
+            item.ingredients.add(ingredient)
+
+        for ingredient in Ingredient.objects.all():
+            item.additionalIngredients.add(ingredient)
+
+        return Response(item.id, status=201)
 
 
 class PizzaDetailView(APIView):
     """ Вывод одной пиццы """
 
     def get(self, request, pk):
-        pizza = Pizza.objects.get(id=pk)
+        try:
+            pizza = Pizza.objects.get(id=pk, forSale=True)
+        except Pizza.DoesNotExist:
+            return Response('Pizza does not exist', status=404)
+
         serializer = PizzasSerializer(pizza)
         return Response(serializer.data)
 
@@ -53,29 +81,41 @@ class SizesListView(APIView):
         return Response(serializer.data)
 
 
-class CartView(APIView):
-    """ Вывод списка товаров из корзины """
+class PizzaCloneView(APIView):
+    """ Клонирование базовой пиццы """
 
-    def get(self, request):
-        items = Cart.objects.all()
-        serializer = CartSerializer(items, many=True)
+    def get(self, request, pk):
+        try:
+            clones = IntermediateCart.objects.get(id=pk)
+        except IntermediateCart.DoesNotExist:
+            return Response('Not found', status=404)
+        serializer = CartSerializer(clones)
         return Response(serializer.data)
 
-    def post(self, request):
-        data = request.data
+    # def post(self, request):
+    #     pizza_id = request.data
+    #     pizza_clone = Pizza.objects.get(id=pizza_id['id'])
+    #     item = IntermediateCart.objects.create(id=pizza_clone.id,
+    #                                            name=pizza_clone.name,
+    #                                            image=pizza_clone.image,
+    #                                            dough=pizza_clone.dough,
+    #                                            size=pizza_clone.size,
+    #                                            cost=pizza_clone.cost)
+    #     item.save()
+    #
+    #     for ingredient in pizza_clone.ingredients.all():
+    #         item.ingredients.add(ingredient)
+    #
+    #     for ingredient in Ingredient.objects.all():
+    #         item.additionalIngredients.add(ingredient)
+    #
+    #     return Response({"id": pizza_clone.id}, status=201)
 
-        new_item = Cart.objects.create(name=data['name'],
-                                       image=data['image'],
-                                       dough=Dough.objects.get(id=data['dough']),
-                                       size=Size.objects.get(id=data['size']),
-                                       cost=data['cost'])
-        new_item.save()
 
-        for ingredient in data['ingredients']:
-            ingredient_obj = Ingredient.objects.get(value=ingredient['value'],
-                                                    cost=ingredient['cost'])
-            new_item.ingredients.add(ingredient_obj)
+class CartView(APIView):
 
-        serializer = CartSerializer(new_item)
-
+    def get(self, request):
+        """ Вывод списка товаров из корзины """
+        items = Cart.objects.all()
+        serializer = CartSerializer(items, many=True)
         return Response(serializer.data)

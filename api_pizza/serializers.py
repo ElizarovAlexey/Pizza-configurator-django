@@ -44,6 +44,7 @@ class CartSerializer(serializers.ModelSerializer):
     size = SizesListSerializer()
     dough = DoughsListSerializer()
     ingredients = IngredientsListSerializer(many=True)
+    additionalIngredients = IngredientsListSerializer(many=True)
 
     class Meta:
         model = Cart

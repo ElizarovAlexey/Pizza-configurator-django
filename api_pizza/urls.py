@@ -10,4 +10,6 @@ urlpatterns = format_suffix_patterns([
     path('doughs/', views.DoughsListView().as_view()),
     path('sizes/', views.SizesListView().as_view()),
     path('cart/', views.CartView().as_view()),
+    path('cart/<int:pk>', views.CartView().as_view()),
+    path('intermediate/<int:pk>', views.PizzaCloneView().as_view()),
 ])
