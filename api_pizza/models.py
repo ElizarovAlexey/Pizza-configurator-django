@@ -23,7 +23,6 @@ class Ingredient(models.Model):
     """ Ингредиенты """
     value = models.CharField('Ингредиент', max_length=50)
     cost = models.SmallIntegerField('Цена', default=0)
-    count = models.SmallIntegerField('Количество порций', default=1)
 
     def __str__(self):
         return self.value
@@ -49,7 +48,7 @@ class Drink(models.Model):
     """ Напитки """
 
     name = models.CharField('Название', max_length=50)
-    image = models.URLField('Изобрание', max_length=70)
+    image = models.URLField('Изобрание', max_length=150)
     description = models.TextField('Описание', max_length=250)
     cost = models.PositiveIntegerField('Цена', default=0)
 
@@ -61,7 +60,7 @@ class Dessert(models.Model):
     """ Дессерты """
 
     name = models.CharField('Название', max_length=50)
-    image = models.URLField('Изобрание', max_length=70)
+    image = models.URLField('Изобрание', max_length=150)
     description = models.TextField('Описание', max_length=250)
     cost = models.PositiveIntegerField('Цена', default=0)
 
@@ -87,12 +86,13 @@ class Cart(models.Model):
 
     name = models.CharField('Название', max_length=50)
     image = models.URLField('Изображение', max_length=150)
-    dough = models.ForeignKey(Dough, on_delete=models.CASCADE)
-    size = models.ForeignKey(Size, on_delete=models.CASCADE)
-    ingredients = models.ManyToManyField(Ingredient, related_name='ingredients')
-    additionalIngredients = models.ManyToManyField(Ingredient, related_name='addIngredients')
+    dough = models.ForeignKey(Dough, on_delete=models.CASCADE, null=True)
+    size = models.ForeignKey(Size, on_delete=models.CASCADE, null=True)
+    ingredients = models.ManyToManyField(Ingredient, related_name='ingredients', null=True)
+    additionalIngredients = models.ManyToManyField(Ingredient, related_name='addIngredients', null=True)
     cost = models.PositiveIntegerField('Цена', default=0)
-    sold = models.BooleanField(default=False)
+    count = models.SmallIntegerField(default=1)
+    sold = models.BooleanField(default=False, null=True)
 
     def __str__(self):
         return self.name

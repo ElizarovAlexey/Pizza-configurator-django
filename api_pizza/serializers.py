@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Pizza, Dough, Size, Ingredient, Cart
+from .models import Pizza, Dough, Size, Ingredient, Cart, Dessert, Drink
 
 
 class IngredientsListSerializer(serializers.ModelSerializer):
@@ -35,6 +35,22 @@ class PizzasSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pizza
+        fields = '__all__'
+
+
+class DessertsListSerializer(serializers.ModelSerializer):
+    """ Вывод списка дессертов """
+
+    class Meta:
+        model = Dessert
+        fields = '__all__'
+
+
+class DrinksListSerializer(serializers.ModelSerializer):
+    """ Вывод списка напитков """
+
+    class Meta:
+        model = Dessert
         fields = '__all__'
 
 
