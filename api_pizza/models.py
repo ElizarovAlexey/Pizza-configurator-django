@@ -99,3 +99,18 @@ class Cart(models.Model):
 
     class Meta:
         verbose_name_plural = 'Cart'
+
+
+class Order(models.Model):
+    """  Заказы """
+
+    client_name = models.CharField('Имя', max_length=30)
+    client_phone = models.CharField('Телефон', max_length=30)
+    client_email = models.EmailField('Емайл')
+    client_address = models.CharField('Адрес', max_length=50)
+    order_commentary = models.TextField('Комментарий')
+    order_products = models.ManyToManyField(Cart)
+    total_price = models.SmallIntegerField(default=0)
+
+    def __str__(self):
+        return self.client_name

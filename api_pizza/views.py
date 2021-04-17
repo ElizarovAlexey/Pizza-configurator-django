@@ -1,13 +1,14 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import (Size, Dough, Ingredient, Pizza, Drink, Dessert, Cart, IntermediateCart)
+from .models import (Size, Dough, Ingredient, Pizza, Drink, Dessert, Cart, IntermediateCart, Order)
 from .serializers import (PizzasSerializer,
                           IngredientsListSerializer,
                           SizesListSerializer,
                           DoughsListSerializer,
                           CartSerializer,
                           DrinksListSerializer,
-                          DessertsListSerializer)
+                          DessertsListSerializer,
+                          OrderSerializer)
 
 
 class PizzaListView(APIView):
@@ -118,7 +119,7 @@ class CartView(APIView):
     def get(self, request):
         """ Вывод списка товаров из корзины """
 
-        items = Cart.objects.all()
+        items = Cart.objects.filter(sold=False)
         serializer = CartSerializer(items, many=True)
         return Response(serializer.data)
 
@@ -210,7 +211,7 @@ class CartDetailView(APIView):
         except Pizza.DoesNotExist:
             return Response('Item does not exist', status=404)
 
-        cart_item = Cart.objects.create(name=intermediate_item.name,
+        cart_item = Cart.objects.create(name=intermediate_item.name + " 'индивидуальная'",
                                         image=intermediate_item.image,
                                         dough=intermediate_item.dough,
                                         size=intermediate_item.size,
@@ -224,3 +225,32 @@ class CartDetailView(APIView):
             cart_item.additionalIngredients.add(ingredient)
 
         return Response(cart_item.id, status=201)
+
+
+class OrderView(APIView):
+    """ Вывод заказа """
+
+    def get(self, request):
+        order = Order.objects.all()
+        serializer = OrderSerializer(order, many=True)
+        return Response(serializer.data, status=200)
+
+    def post(self, request):
+        data = request.data
+
+        order_item = Order.objects.create(client_name=data['clientData']['name'],
+                                          client_phone=data['clientData']['phone'],
+                                          client_email=data['clientData']['email'],
+                                          client_address=data['clientData']['address'],
+                                          order_commentary=data['clientData']['commentary'],
+                                          total_price=data['totalPrice'])
+
+        order_item.save()
+
+        for product in data['products']:
+            order_item.order_products.add(product)
+            cart_item = Cart.objects.get(id=product)
+            cart_item.sold = True
+            cart_item.save()
+
+        return Response(status=201)
