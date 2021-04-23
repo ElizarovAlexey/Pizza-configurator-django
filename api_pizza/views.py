@@ -1,4 +1,5 @@
 from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from .models import (Size, Dough, Ingredient, Pizza, Drink, Dessert, Cart, IntermediateCart, Order)
 from .serializers import (PizzasSerializer,
@@ -12,21 +13,27 @@ from .serializers import (PizzasSerializer,
 
 
 class PizzaListView(APIView):
-    """ Вывод списка пицц """
 
     def get(self, request):
-        pizzas = Pizza.objects.filter(forSale=True)
+        """ Вывод списка пицц """
+        try:
+            pizzas = Pizza.objects.filter(forSale=True)
+        except Pizza.DoesNotExist:
+            return Response('Pizzas does not exist', status=404)
+
         serializer = PizzasSerializer(pizzas, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=200)
 
     def post(self, request):
         """ Добавление пиццы в промежуточную корзину """
 
-        pizza_id = request.data
+        pizza_id = request.data['id']
+
         try:
-            pizza_clone = Pizza.objects.get(id=pizza_id['id'])
+            pizza_clone = Pizza.objects.get(id=pizza_id)
         except Pizza.DoesNotExist:
-            return Response('Pizza does not exist', status=404)
+            return Response(f'Pizza with id {pizza_id} does not exist', status=404)
+
         item = IntermediateCart.objects.create(name=pizza_clone.name,
                                                image=pizza_clone.image,
                                                dough=pizza_clone.dough,
@@ -50,27 +57,35 @@ class PizzaDetailView(APIView):
         """ Вывод одной пиццы """
         try:
             pizza = Pizza.objects.get(id=pk, forSale=True)
-        except Pizza.DoesNotExist:
-            return Response('Pizza does not exist', status=404)
+        except Pizza.objects.get(id=pk, forSale=True).DoesNotExist:
+            return Response(f'Pizza with id {pk} does not exist', status=404)
 
         serializer = PizzasSerializer(pizza)
-        return Response(serializer.data)
+        return Response(serializer.data, status=200)
 
 
 class DessertListView(APIView):
     """ Вывод списка дессертов """
 
     def get(self, request):
-        desserts = Dessert.objects.all()
+        try:
+            desserts = Dessert.objects.all()
+        except Dessert.DoesNotExist:
+            return Response('Desserts does not exist', status=404)
+
         serializer = DessertsListSerializer(desserts, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=200)
 
 
 class DrinkListView(APIView):
     """ Вывод списка напитков """
 
     def get(self, request):
-        drinks = Drink.objects.all()
+        try:
+            drinks = Drink.objects.all()
+        except Drink.DoesNotExist:
+            return Response('Drinks does not exist', status=404)
+
         serializer = DrinksListSerializer(drinks, many=True)
         return Response(serializer.data)
 
@@ -79,39 +94,53 @@ class IngredientsListView(APIView):
     """ Вывод списка ингредиентов """
 
     def get(self, request):
-        ingredients = Ingredient.objects.all()
+        try:
+            ingredients = Ingredient.objects.all()
+        except Ingredient.DoesNotExist:
+            return Response('Ingredients does not exist', status=404)
+
         serializer = IngredientsListSerializer(ingredients, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=200)
 
 
 class DoughsListView(APIView):
     """ Вывод списка типов теста """
 
     def get(self, request):
-        doughs = Dough.objects.all()
+        try:
+            doughs = Dough.objects.all()
+        except Dough.DoesNotExist:
+            return Response('Dough does not exist', status=404)
+
         serializer = DoughsListSerializer(doughs, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=200)
 
 
 class SizesListView(APIView):
     """ Вывод списка размеров """
 
     def get(self, request):
-        sizes = Size.objects.all()
+        try:
+            sizes = Size.objects.all()
+        except Size.DoesNotExist:
+            return Response('Sizes does not exist', status=404)
+
         serializer = SizesListSerializer(sizes, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=200)
 
 
 class IntermediateView(APIView):
-    """ Вывод пиццы из промежуточной корзины """
 
     def get(self, request, pk):
+        """ Вывод пиццы из промежуточной корзины """
+
         try:
             clones = IntermediateCart.objects.get(id=pk)
         except IntermediateCart.DoesNotExist:
-            return Response('Not found', status=404)
+            return Response(f'Intermediate cart object with id {pk} does not exist', status=404)
+
         serializer = CartSerializer(clones)
-        return Response(serializer.data)
+        return Response(serializer.data, status=200)
 
 
 class CartView(APIView):
@@ -119,56 +148,126 @@ class CartView(APIView):
     def get(self, request):
         """ Вывод списка товаров из корзины """
 
-        items = Cart.objects.filter(sold=False)
+        try:
+            items = Cart.objects.filter(sold=False)
+        except Cart.DoesNotExist:
+            return Response('Cart item does not exist', status=404)
+
         serializer = CartSerializer(items, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=200)
 
     def post(self, request):
         """ Добавление товаров в корзину """
 
         data = request.data
 
-        if data['type'] == 'dessert' or data['type'] == 'drink':
-            dessert_item = Cart.objects.create(name=data['name'],
-                                               image=data['image'],
-                                               cost=data['cost'])
-            dessert_item.save()
+        if data['type'] == '':
+            return Response('The necessary information is not provided', status=400)
+
+        if data['type'] == 'dessert':
+            try:
+                dessert_item = Dessert.objects.get(id=data['id'])
+            except Dessert.DoesNotExist:
+                return Response(f'Dessert does not exist', status=404)
+
+            try:
+                cart_object = Cart.objects.get(name=dessert_item.name, sold=False)
+            except Cart.DoesNotExist:
+                cart_item = Cart.objects.create(name=dessert_item.name,
+                                                image=dessert_item.image,
+                                                cost=dessert_item.cost,
+                                                discount=dessert_item.discount)
+                cart_item.save()
+
+                return Response(status=201)
+
+            if cart_object in Cart.objects.all():
+                cart_object.count += 1
+                cart_object.save()
+                return Response(status=202)
+
+        if data['type'] == 'drink':
+            try:
+                drink_item = Drink.objects.get(id=data['id'])
+            except Dessert.DoesNotExist:
+                return Response(f'Drink does not exist', status=404)
+
+            try:
+                cart_object = Cart.objects.get(name=drink_item.name, sold=False)
+            except Cart.DoesNotExist:
+                cart_item = Cart.objects.create(name=drink_item.name,
+                                                image=drink_item.image,
+                                                cost=drink_item.cost,
+                                                discount=drink_item.discount)
+                cart_item.save()
+
+                return Response(status=201)
+
+            if cart_object in Cart.objects.all():
+                cart_object.count += 1
+                cart_object.save()
+                return Response(status=202)
 
         if data['type'] == 'pizza':
-            pizza_item = Cart.objects.create(name=data['name'],
-                                             image=data['image'],
-                                             dough=Dough.objects.get(id=data['dough']),
-                                             size=Size.objects.get(id=data['size']),
-                                             cost=data['cost'])
-            pizza_item.save()
+            try:
+                pizza_item = Pizza.objects.get(id=data['id'])
+            except Dessert.DoesNotExist:
+                return Response(f'Pizza does not exist', status=404)
 
-            for ingredient in data['ingredients']:
-                pizza_item.ingredients.add(ingredient['id'])
+            if data['cost'] is None:
+                return Response('The necessary information is not provided', status=400)
 
-        return Response(status=201)
+            try:
+                cart_object = Cart.objects.get(name=pizza_item.name, sold=False)
+            except Cart.DoesNotExist:
+                cart_item = Cart.objects.create(name=pizza_item.name,
+                                                image=pizza_item.image,
+                                                dough=pizza_item.dough,
+                                                size=pizza_item.size,
+                                                cost=data['cost'],
+                                                discount=pizza_item.discount)
+                cart_item.save()
+
+                for ingredient in pizza_item.ingredients.all():
+                    cart_item.ingredients.add(ingredient)
+
+                return Response(status=201)
+
+            if cart_object in Cart.objects.all():
+                cart_object.count += 1
+                cart_object.save()
+                return Response(status=202)
+
+    def put(self, request):
+        """ Изменение количество товара в корзине """
+
+        data = request.data
+        item_id = data['id']
+
+        try:
+            cart_item = Cart.objects.get(id=item_id)
+        except Cart.DoesNotExist:
+            return Response(f'Cart object with id {item_id} does not exist', status=404)
+
+        cart_item.count = data['count']
+        cart_item.save()
+
+        serializer = CartSerializer(cart_item)
+
+        return Response(serializer.data, status=202)
 
     def delete(self, request):
         """ Удаление товара из корзины """
 
         item_id = request.data['id']
 
-        cart_item = Cart.objects.get(id=item_id)
+        try:
+            cart_item = Cart.objects.get(id=item_id)
+        except Cart.DoesNotExist:
+            return Response(f'Cart object with id {item_id} does not exist', status=404)
         cart_item.delete()
 
-        return Response(status=204)
-
-    def put(self, request):
-        """ Изменение количество товара в корзине """
-
-        data = request.data
-
-        cart_item = Cart.objects.get(id=data['id'])
-        cart_item.count = data['count']
-        cart_item.save()
-
-        serializer = CartSerializer(cart_item)
-
-        return Response(serializer.data, status=201)
+        return Response(status=202)
 
 
 class CartDetailView(APIView):
@@ -176,30 +275,34 @@ class CartDetailView(APIView):
     def put(self, request, pk):
         """ Изменение пиццы в промежуточной корзине """
 
-        item = IntermediateCart.objects.get(id=pk)
         data = request.data
 
-        item.dough = Dough.objects.get(id=data['dough']['id'])
-        item.size = Size.objects.get(id=data['size']['id'])
-        item.cost = data['cost']
+        try:
+            intermediate_item = IntermediateCart.objects.get(id=pk)
+        except IntermediateCart.DoesNotExist:
+            return Response(f'Cart object with id {pk} does not exist', status=404)
 
-        item.save()
+        intermediate_item.dough = Dough.objects.get(id=data['dough'])
+        intermediate_item.size = Size.objects.get(id=data['size'])
+        intermediate_item.cost = data['cost']
 
-        for existing_ingredient in item.ingredients.all():
-            item.ingredients.remove(existing_ingredient)
+        intermediate_item.save()
 
-        for existing_ingredient in item.additionalIngredients.all():
-            item.additionalIngredients.remove(existing_ingredient)
+        for existing_ingredient in intermediate_item.ingredients.all():
+            intermediate_item.ingredients.remove(existing_ingredient)
+
+        for existing_ingredient in intermediate_item.additionalIngredients.all():
+            intermediate_item.additionalIngredients.remove(existing_ingredient)
 
         for ingredient in data['ingredients']:
-            item.ingredients.add(ingredient['id'])
+            intermediate_item.ingredients.add(ingredient['id'])
 
         for ingredient in data['additionalIngredients']:
-            item.additionalIngredients.add(ingredient['id'])
+            intermediate_item.additionalIngredients.add(ingredient['id'])
 
-        serializer = CartSerializer(item)
+        serializer = CartSerializer(intermediate_item)
 
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=202)
 
     def post(self, request, pk):
         """ Перемещение товара из промежуточной корзины в основную """
@@ -208,8 +311,8 @@ class CartDetailView(APIView):
 
         try:
             intermediate_item = IntermediateCart.objects.get(id=pizza_id)
-        except Pizza.DoesNotExist:
-            return Response('Item does not exist', status=404)
+        except IntermediateCart.objects.get(id=pizza_id).DoesNotExist:
+            return Response(f'Intermediate cart with id {pizza_id} does not exist', status=404)
 
         cart_item = Cart.objects.create(name=intermediate_item.name + " 'индивидуальная'",
                                         image=intermediate_item.image,
@@ -228,14 +331,21 @@ class CartDetailView(APIView):
 
 
 class OrderView(APIView):
-    """ Вывод заказа """
 
     def get(self, request):
-        order = Order.objects.all()
+        """ Вывод заказов """
+
+        try:
+            order = Order.objects.all()
+        except Order.DoesNotExist:
+            return Response('Orders does not exist', status=404)
+
         serializer = OrderSerializer(order, many=True)
         return Response(serializer.data, status=200)
 
     def post(self, request):
+        """ Добавление заказа """
+
         data = request.data
 
         order_item = Order.objects.create(client_name=data['clientData']['name'],
