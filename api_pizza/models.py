@@ -29,7 +29,7 @@ class Ingredient(models.Model):
 
 
 class Pizza(models.Model):
-    """ Пиццы """
+    """ Пицца """
 
     name = models.CharField('Название', max_length=50)
     description = models.TextField('Описание', max_length=250)

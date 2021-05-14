@@ -1,5 +1,4 @@
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from .models import (Size, Dough, Ingredient, Pizza, Drink, Dessert, Cart, IntermediateCart, Order)
 from .serializers import (PizzasSerializer,
@@ -13,7 +12,6 @@ from .serializers import (PizzasSerializer,
 
 
 class PizzaListView(APIView):
-
     def get(self, request):
         """ Вывод списка пицц """
         try:
